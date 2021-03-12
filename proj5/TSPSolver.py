@@ -1,15 +1,14 @@
 #!/usr/bin/python3
 
 from which_pyqt import PYQT_VER
+import random
+
 if PYQT_VER == 'PYQT5':
 	from PyQt5.QtCore import QLineF, QPointF
 elif PYQT_VER == 'PYQT4':
 	from PyQt4.QtCore import QLineF, QPointF
 else:
 	raise Exception('Unsupported Version of PyQt: {}'.format(PYQT_VER))
-
-
-
 
 import time
 import numpy as np
@@ -18,14 +17,12 @@ import heapq
 import itertools
 
 
-
 class TSPSolver:
-	def __init__( self, gui_view ):
+	def __init__(self, gui_view):
 		self._scenario = None
 
-	def setupWithScenario( self, scenario ):
+	def setupWithScenario(self, scenario):
 		self._scenario = scenario
-
 
 	''' <summary>
 		This is the entry point for the default solver
@@ -37,8 +34,8 @@ class TSPSolver:
 		solution found, and three null values for fields not used for this 
 		algorithm</returns> 
 	'''
-	
-	def defaultRandomTour( self, time_allowance=60.0 ):
+
+	def defaultRandomTour(self, time_allowance=60.0):
 		results = {}
 		cities = self._scenario.getCities()
 		ncities = len(cities)
@@ -46,13 +43,13 @@ class TSPSolver:
 		count = 0
 		bssf = None
 		start_time = time.time()
-		while not foundTour and time.time()-start_time < time_allowance:
+		while not foundTour and time.time() - start_time < time_allowance:
 			# create a random permutation
-			perm = np.random.permutation( ncities )
+			perm = np.random.permutation(ncities)
 			route = []
 			# Now build the route using the random permutation
-			for i in range( ncities ):
-				route.append( cities[ perm[i] ] )
+			for i in range(ncities):
+				route.append(cities[perm[i]])
 			bssf = TSPSolution(route)
 			count += 1
 			if bssf.cost < np.inf:
@@ -68,7 +65,6 @@ class TSPSolver:
 		results['pruned'] = None
 		return results
 
-
 	''' <summary>
 		This is the entry point for the greedy solver, which you must implement for 
 		the group project (but it is probably a good idea to just do it for the branch-and
@@ -81,11 +77,72 @@ class TSPSolver:
 		algorithm</returns> 
 	'''
 
-	def greedy( self,time_allowance=60.0 ):
-		pass
-	
-	
-	
+	def greedy(self, time_allowance=60.0):
+		random.seed(time.time())
+		results = {}
+		cities = self._scenario.getCities()
+		ncities = len(cities)
+		foundTour = False
+		count = 0  # How many tries it took to find a path
+		bssf = None
+		start_time = time.time()
+
+		while not foundTour and time.time() - start_time < time_allowance:
+
+			route = []
+			current_city = cities.pop(random.randint(0, len(cities) - 1))
+			origin_city = current_city
+			route.append(origin_city)
+
+			while len(cities) > 0:
+
+				min_distance = np.inf
+				min_city = None
+
+				# Find the minimum city
+				index = -1
+				for i in range(len(cities)):
+					assert (type(cities[i]) == City)
+					if cities[i].costTo(current_city) < min_distance:
+						min_distance = cities[i].costTo(current_city)
+						min_city = cities[i]
+						index = i
+				cities.pop(index)  # Remove the min city from list of cities
+
+				if min_city is not None:
+					current_city = min_city
+
+					if len(cities) == 0:
+						# Check if there's a path back to the origin city
+						if min_city.costTo(origin_city) < np.inf:
+							route.append(current_city)
+							foundTour = True
+							break
+						else:
+							foundTour = False
+							count += 1
+							break
+
+					route.append(current_city)
+				else:
+					# There's no solution, rerun
+					count += 1
+					foundTour = False
+					break
+
+			# Check for route from current_city to origin city
+
+		bssf = TSPSolution(route)
+		end_time = time.time()
+		results['cost'] = bssf.cost if foundTour else math.inf
+		results['time'] = end_time - start_time
+		results['count'] = count
+		results['soln'] = bssf
+		results['max'] = None
+		results['total'] = None
+		results['pruned'] = None
+		return results
+
 	''' <summary>
 		This is the entry point for the branch-and-bound algorithm that you will implement
 		</summary>
@@ -94,11 +151,9 @@ class TSPSolver:
 		not include the initial BSSF), the best solution found, and three more ints: 
 		max queue size, total number of states created, and number of pruned states.</returns> 
 	'''
-		
-	def branchAndBound( self, time_allowance=60.0 ):
+
+	def branchAndBound(self, time_allowance=60.0):
 		pass
-
-
 
 	''' <summary>
 		This is the entry point for the algorithm you'll write for your group project.
@@ -108,10 +163,6 @@ class TSPSolver:
 		best solution found.  You may use the other three field however you like.
 		algorithm</returns> 
 	'''
-		
-	def fancy( self,time_allowance=60.0 ):
+
+	def fancy(self, time_allowance=60.0):
 		pass
-		
-
-
-
