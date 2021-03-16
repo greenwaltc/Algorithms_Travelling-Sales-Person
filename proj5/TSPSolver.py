@@ -85,10 +85,12 @@ class TSPSolver:
 		foundTour = False
 		count = 0  # How many tries it took to find a path
 		bssf = None
+		original_cities = [cities[city] for city in range(len(cities))] # Saves the cities for re-runs
 		start_time = time.time()
 
 		while not foundTour and time.time() - start_time < time_allowance:
 
+			cities = [original_cities[city] for city in range(len(original_cities))]
 			route = []
 			current_city = cities.pop(random.randint(0, len(cities) - 1))
 			origin_city = current_city
@@ -114,7 +116,7 @@ class TSPSolver:
 
 					if len(cities) == 0:
 						# Check if there's a path back to the origin city
-						if min_city.costTo(origin_city) < np.inf:
+						if min_city.costTo(origin_city) < float('inf'):
 							route.append(current_city)
 							foundTour = True
 							break
@@ -129,8 +131,6 @@ class TSPSolver:
 					count += 1
 					foundTour = False
 					break
-
-			# Check for route from current_city to origin city
 
 		bssf = TSPSolution(route)
 		end_time = time.time()
