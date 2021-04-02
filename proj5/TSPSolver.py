@@ -87,16 +87,19 @@ class TSPSolver:
 		bssf = None
 		original_cities = [cities[city] for city in range(len(cities))] # Saves the cities for re-runs
 		start_time = time.time()
+		city_index = 0
 
 		while not foundTour and time.time() - start_time < time_allowance:
 
 			cities = [original_cities[city] for city in range(len(original_cities))]
 			route = []
-			current_city = cities.pop(random.randint(0, len(cities) - 1))
+			# current_city = cities.pop(random.randint(0, len(cities) - 1))
+			current_city = cities.pop(city_index)
+			city_index += 1
 			origin_city = current_city
 			route.append(origin_city)
 
-			while len(cities) > 0:
+			while len(cities) > 0 and time.time() - start_time < time_allowance:
 
 				min_distance = np.inf
 				min_city = None
@@ -105,8 +108,8 @@ class TSPSolver:
 				index = -1
 				for i in range(len(cities)):
 					assert (type(cities[i]) == City)
-					if cities[i].costTo(current_city) < min_distance:
-						min_distance = cities[i].costTo(current_city)
+					if current_city.costTo(cities[i]) < min_distance:
+						min_distance = current_city.costTo(cities[i])
 						min_city = cities[i]
 						index = i
 				cities.pop(index)  # Remove the min city from list of cities
