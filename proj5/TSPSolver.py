@@ -204,7 +204,7 @@ class TSPSolver:
 						child.city_num = j
 						child.depth = child.parent.depth + 1
 						child.cost_matrix = copy.deepcopy(child.parent.cost_matrix) # Don't want the parent's matrix values to change
-						child.path = child.parent.path
+						child.path = copy.deepcopy(child.parent.path)
 						child.path.append(j)
 
 						'''Inf out appropriate row and column'''
@@ -219,7 +219,7 @@ class TSPSolver:
 						path_len = len(child.path)
 						index = path_len - 1
 						while index >= 0:
-							child.cost_matrix[child.path[path_len - 1]][index] = math.inf
+							child.cost_matrix[child.city_num][child.path[index]] = math.inf
 							index -= 1
 
 						'''Calculate State Cost'''
@@ -227,6 +227,10 @@ class TSPSolver:
 						cost_step = child.parent.cost_matrix[child.parent.city_num][child.city_num]
 						cost_prev_state = child.parent.cost
 						child.cost = cost_prev_state + cost_step + cost_reduction
+
+						'''Add child state to the queue'''
+						if self.bssf.cost > child.cost > self.lowerBound:
+							stateQueue.put((1/child.cost, child))
 
 		pass
 
