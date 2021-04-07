@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from which_pyqt import PYQT_VER
+from queue import PriorityQueue
 import random
 
 if PYQT_VER == 'PYQT5':
@@ -156,7 +157,74 @@ class TSPSolver:
 	'''
 
 	def branchAndBound(self, time_allowance=60.0):
+
+		random.seed(time.time())
+		results = {}
+		self.cities = self._scenario.getCities()
+		self.ncities = len(self.cities)
+		lowerBound = 0
+
+		'''Initialize BSSF to a random solution'''
+		bssf = self.defaultRandomTour(time_allowance)['soln']
+
+		'''Initialize state priority queue'''
+		stateQueue = PriorityQueue()
+
+		'''	Create the root of the state tree
+			Reduce the cost matrix
+			Set lower bound to cost of first reduction'''
+		root = state(self.ncities)
+		self.initializeState(root)
+		lowerBound = root.cost
+
 		pass
+
+	def initializeState(self, state):
+		# This is the root of the state tree, or state one
+		if state.parent == None:
+			state.state_num = 1
+			state.depth = 1
+			'''Initialize first state cost matrix'''
+			for i in range(self.ncities):
+				for k in range(self.ncities):
+					state.cost_matrix[i][k] = self.cities[i].costTo(self.cities[k])
+			'''Reduce the cost matrix'''
+			state.cost = self.reduceMatrix(state)
+
+		pass
+
+
+	def reduceMatrix(self, state):
+		total_cost = 0
+		'''Reduce row-by-row'''
+		for i in range(self.ncities):
+			row_min = math.inf
+			'''Find the minimum value in the row'''
+			for j in range(self.ncities):
+				if state.cost_matrix[i][j] < row_min:
+					row_min = state.cost_matrix[i][j]
+
+			'''Subtract minimum value from each position in row'''
+			if row_min != math.inf and row_min != 0:
+				total_cost += row_min
+				for j in range(self.ncities):
+					state.cost_matrix[i][j] -= row_min
+
+		'''Reduce column by column'''
+		for j in range(self.ncities):
+			col_min = math.inf
+			'''Find the minimum value in the column'''
+			for i in range(self.ncities):
+				if state.cost_matrix[i][j] < col_min:
+					col_min = state.cost_matrix[i][j]
+
+			'''Subtract minimum value from each position in column'''
+			if col_min != math.inf and col_min != 0:
+				total_cost += col_min
+				for i in range(self.ncities):
+					state.cost_matrix[i][j] -= col_min
+
+		return total_cost
 
 	''' <summary>
 		This is the entry point for the algorithm you'll write for your group project.
@@ -169,3 +237,16 @@ class TSPSolver:
 
 	def fancy(self, time_allowance=60.0):
 		pass
+
+class state:
+	'''
+		n:param the number of nodes in the graph
+	'''
+	def __init__(self, n):
+		self.state_num = -1
+		self.parent = None
+		self.children = []
+		self.cost = -1
+		self.city = None
+		self.depth = 0
+		self.cost_matrix = [[-1 for i in range(n)] for k in range(n)]
