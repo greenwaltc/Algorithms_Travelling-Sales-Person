@@ -161,7 +161,10 @@ class TSPSolver:
 
 	def branchAndBound(self, time_allowance=60.0):
 
+		max_queue_size = 0
 		num_states = 0
+		num_pruned = 0
+		num_solutions = 0
 		random.seed(time.time())
 		results = {}
 		self.cities = self._scenario.getCities()
@@ -169,9 +172,8 @@ class TSPSolver:
 		self.lowerBound = 0
 		self.state_num = 0
 
-		'''Initialize BSSF to a random solution'''
-		self.bssf = TSPSolution([self.cities[0]])
-		num_solutions = 0
+		'''Initialize BSSF to the greedy algorithm solution'''
+		self.bssf = self.greedy(time_allowance)['soln']
 
 		'''Initialize state priority queue'''
 		stateQueue = PriorityQueue()
@@ -186,14 +188,18 @@ class TSPSolver:
 		root.path.append(root.city_num)
 		self.lowerBound = root.cost
 
-		stateQueue.put((root.cost / (root.depth * root.depth), root))
+		stateQueue.put((root.cost / (root.depth), root))
 		start_time = time.time()
 		'''Begin the algorithm'''
 		while not stateQueue.empty() and time.time() - start_time < time_allowance:
+			if stateQueue.qsize() > max_queue_size:
+				max_queue_size = stateQueue.qsize()
 			state = stateQueue.get()[1]
 			if state.cost < self.bssf.cost:
 				'''Make each child state'''
 				for j in range(self.ncities):
+					if time.time() - start_time > time_allowance:
+						break  # Over on time
 					if state.cost_matrix[state.city_num][j] != math.inf:
 						# There is a path from this city to the next
 						'''Set up initial values for child'''
@@ -244,18 +250,24 @@ class TSPSolver:
 
 						'''Add child state to the queue'''
 						if self.bssf.cost > child.cost > self.lowerBound:
-							stateQueue.put((child.cost / (child.depth * child.depth), child))
-			else:
-				break  # Already found the best solution
+							stateQueue.put((child.cost / (child.depth), child))
+						else:
+							if stateQueue.qsize() > max_queue_size:
+								max_queue_size = stateQueue.qsize()
+							num_pruned += 1
+			else:  # Found the local optimal solution
+				if stateQueue.qsize() > max_queue_size:
+					max_queue_size = stateQueue.qsize()
+				num_pruned += stateQueue.qsize()
+				break
 		end_time = time.time()
-		print(num_states)
 		results['cost'] = self.bssf.cost  # if foundTour else math.inf
 		results['time'] = end_time - start_time
 		results['count'] = num_solutions
 		results['soln'] = self.bssf
-		results['max'] = None
-		results['total'] = None
-		results['pruned'] = None
+		results['max'] = max_queue_size
+		results['total'] = num_states
+		results['pruned'] = num_pruned
 		return results
 
 	def initializeState(self, parent, child):
