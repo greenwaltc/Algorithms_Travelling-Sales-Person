@@ -161,6 +161,7 @@ class TSPSolver:
 
 	def branchAndBound(self, time_allowance=60.0):
 
+		num_states = 0
 		random.seed(time.time())
 		results = {}
 		self.cities = self._scenario.getCities()
@@ -169,7 +170,8 @@ class TSPSolver:
 		self.state_num = 0
 
 		'''Initialize BSSF to a random solution'''
-		self.bssf = self.defaultRandomTour(time_allowance)['soln']
+		self.bssf = TSPSolution([self.cities[0]])
+		num_solutions = 0
 
 		'''Initialize state priority queue'''
 		stateQueue = PriorityQueue()
@@ -178,26 +180,25 @@ class TSPSolver:
 			Reduce the cost matrix
 			Set lower bound to cost of first reduction'''
 		root = self.state(self.ncities)
+		root.cost_matrix = [[-1 for i in range(self.ncities)] for k in range(self.ncities)]
 		self.initializeState(None, root)
 		root.city_num = 0  # Always start at first city
 		root.path.append(root.city_num)
 		self.lowerBound = root.cost
 
-		stateQueue.put((root.cost, root))  # inserting the negative cost makes the max heap operate like a min heap
+		stateQueue.put((root.cost / (root.depth * root.depth), root))
 		start_time = time.time()
 		'''Begin the algorithm'''
-		while not stateQueue.empty():
-			print("llop")
+		while not stateQueue.empty() and time.time() - start_time < time_allowance:
 			state = stateQueue.get()[1]
 			if state.cost < self.bssf.cost:
-				#### state 64 (num 2), iter 11
 				'''Make each child state'''
 				for j in range(self.ncities):
 					if state.cost_matrix[state.city_num][j] != math.inf:
 						# There is a path from this city to the next
-
 						'''Set up initial values for child'''
 						child = self.state(self.ncities)
+						num_states += 1
 						state.children.append(child)
 						child.parent = state
 						child.state_num = self.state_num
@@ -232,22 +233,25 @@ class TSPSolver:
 						'''If the state is a leaf node and 
 						it's less than BSSF so far, update
 						BSSF and continue to next state'''
-						if len(child.path) == self.ncities and child.cost < self.bssf.cost:
-							route = []
-							for i in range(self.ncities):
-								route.append(self.cities[child.path[i]])
-							self.bssf = TSPSolution(route)
+						if len(child.path) == self.ncities:
+							if child.cost < self.bssf.cost:
+								route = []
+								for i in range(self.ncities):
+									route.append(self.cities[child.path[i]])
+								self.bssf = TSPSolution(route)
+							num_solutions += 1
 							continue
 
 						'''Add child state to the queue'''
 						if self.bssf.cost > child.cost > self.lowerBound:
-							stateQueue.put((child.cost, child))
+							stateQueue.put((child.cost / (child.depth * child.depth), child))
 			else:
 				break  # Already found the best solution
 		end_time = time.time()
-		results['cost'] = self.bssf.cost # if foundTour else math.inf
+		print(num_states)
+		results['cost'] = self.bssf.cost  # if foundTour else math.inf
 		results['time'] = end_time - start_time
-		results['count'] = 0
+		results['count'] = num_solutions
 		results['soln'] = self.bssf
 		results['max'] = None
 		results['total'] = None
@@ -326,8 +330,14 @@ class TSPSolver:
 			self.cost = -1
 			self.city_num = None
 			self.depth = 0
-			self.cost_matrix = [[-1 for i in range(n)] for k in range(n)]
+			self.cost_matrix = [[None], [None]]
 			self.path = []  # Stores the path so far in terms of city indexes
+
+		def __gt__(self, other):
+			if (self.cost > other.cost):
+				return True
+			else:
+				return False
 
 
 # class MinHeap:
