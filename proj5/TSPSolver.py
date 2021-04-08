@@ -33,10 +33,10 @@ class TSPSolver:
 		which just finds a valid random tour.  Note this could be used to find your
 		initial BSSF.
 		</summary>
-		<returns>results dictionary for GUI that contains three ints: cost of solution, 
-		time spent to find solution, number of permutations tried during search, the 
-		solution found, and three null values for fields not used for this 
-		algorithm</returns> 
+		<returns>results dictionary for GUI that contains three ints: cost of solution,
+		time spent to find solution, number of permutations tried during search, the
+		solution found, and three null values for fields not used for this
+		algorithm</returns>
 	'''
 
     def defaultRandomTour(self, time_allowance=60.0):
@@ -70,15 +70,15 @@ class TSPSolver:
         return results
 
     ''' <summary>
-		This is the entry point for the greedy solver, which you must implement for 
+		This is the entry point for the greedy solver, which you must implement for
 		the group project (but it is probably a good idea to just do it for the branch-and
 		bound project as a way to get your feet wet).  Note this could be used to find your
 		initial BSSF.
 		</summary>
-		<returns>results dictionary for GUI that contains three ints: cost of best solution, 
+		<returns>results dictionary for GUI that contains three ints: cost of best solution,
 		time spent to find best solution, total number of solutions found, the best
-		solution found, and three null values for fields not used for this 
-		algorithm</returns> 
+		solution found, and three null values for fields not used for this
+		algorithm</returns>
 	'''
 
     def greedy(self, time_allowance=60.0):
@@ -153,10 +153,10 @@ class TSPSolver:
     ''' <summary>
 		This is the entry point for the branch-and-bound algorithm that you will implement
 		</summary>
-		<returns>results dictionary for GUI that contains three ints: cost of best solution, 
+		<returns>results dictionary for GUI that contains three ints: cost of best solution,
 		time spent to find best solution, total number solutions found during search (does
-		not include the initial BSSF), the best solution found, and three more ints: 
-		max queue size, total number of states created, and number of pruned states.</returns> 
+		not include the initial BSSF), the best solution found, and three more ints:
+		max queue size, total number of states created, and number of pruned states.</returns>
 	'''
 
     def branchAndBound(self, time_allowance=60.0):
@@ -237,7 +237,7 @@ class TSPSolver:
                         cost_prev_state = child.parent.cost
                         child.cost = cost_prev_state + cost_step + cost_reduction
 
-                        '''If the state is a leaf node and 
+                        '''If the state is a leaf node and
 						it's less than BSSF so far, update
 						BSSF and continue to next state'''
                         if len(child.path) == self.ncities:
@@ -322,10 +322,10 @@ class TSPSolver:
     ''' <summary>
 		This is the entry point for the algorithm you'll write for your group project.
 		</summary>
-		<returns>results dictionary for GUI that contains three ints: cost of best solution, 
-		time spent to find best solution, total number of solutions found during search, the 
+		<returns>results dictionary for GUI that contains three ints: cost of best solution,
+		time spent to find best solution, total number of solutions found during search, the
 		best solution found.  You may use the other three field however you like.
-		algorithm</returns> 
+		algorithm</returns>
 	'''
 
     def fancy(self, time_allowance=60.0):
