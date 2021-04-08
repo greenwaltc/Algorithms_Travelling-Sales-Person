@@ -188,7 +188,7 @@ class TSPSolver:
         root.path.append(root.city_num)
         self.lowerBound = root.cost
 
-        stateQueue.put((root.cost / (root.depth), root))
+        stateQueue.put((root.cost / root.depth, root))  # Dividing by depth encourages digging deeper first
         start_time = time.time()
         '''Begin the algorithm'''
         while not stateQueue.empty() and time.time() - start_time < time_allowance:
@@ -251,7 +251,7 @@ class TSPSolver:
 
                         '''Add child state to the queue'''
                         if self.bssf.cost > child.cost > self.lowerBound:
-                            stateQueue.put((child.cost / (child.depth), child))
+                            stateQueue.put((child.cost / child.depth, child))
                         else:
                             if stateQueue.qsize() > max_queue_size:
                                 max_queue_size = stateQueue.qsize()
