@@ -169,11 +169,10 @@ class TSPSolver:
         results = {}
         self.cities = self._scenario.getCities()
         self.ncities = len(self.cities)
-        self.lowerBound = 0
-        self.state_num = 0
+        # self.state_num = 0
 
         '''Initialize BSSF to the greedy algorithm solution'''
-        self.bssf = self.greedy(time_allowance)['soln']
+        bssf = self.greedy(time_allowance)['soln']
 
         '''Initialize state priority queue'''
         stateQueue = PriorityQueue()
@@ -186,7 +185,7 @@ class TSPSolver:
         self.initializeState(None, root)
         root.city_num = 0  # Always start at first city
         root.path.append(root.city_num)
-        self.lowerBound = root.cost
+        lowerBound = root.cost
 
         stateQueue.put((root.cost / root.depth, root))  # Dividing by depth encourages digging deeper first
         start_time = time.time()
@@ -195,7 +194,7 @@ class TSPSolver:
             if stateQueue.qsize() > max_queue_size:
                 max_queue_size = stateQueue.qsize()
             state = stateQueue.get()[1]
-            if state.cost < self.bssf.cost:
+            if state.cost < bssf.cost:
                 '''Make each child state'''
                 for j in range(self.ncities):
                     if time.time() - start_time > time_allowance:
@@ -205,10 +204,10 @@ class TSPSolver:
                         '''Set up initial values for child'''
                         child = self.state(self.ncities)
                         num_states += 1
-                        state.children.append(child)
+                        # state.children.append(child)
                         child.parent = state
-                        child.state_num = self.state_num
-                        self.state_num += 1
+                        # child.state_num = self.state_num
+                        # self.state_num += 1
                         child.city_num = j
                         child.depth = child.parent.depth + 1
                         child.cost_matrix = copy.deepcopy(
@@ -241,16 +240,16 @@ class TSPSolver:
 						it's less than BSSF so far, update
 						BSSF and continue to next state'''
                         if len(child.path) == self.ncities:
-                            if child.cost < self.bssf.cost:
+                            if child.cost < bssf.cost:
                                 route = []
                                 for i in range(self.ncities):
                                     route.append(self.cities[child.path[i]])
-                                self.bssf = TSPSolution(route)
+                                bssf = TSPSolution(route)
                             num_solutions += 1
                             continue
 
                         '''Add child state to the queue'''
-                        if self.bssf.cost > child.cost > self.lowerBound:
+                        if bssf.cost > child.cost > lowerBound:
                             stateQueue.put((child.cost / child.depth, child))
                         else:
                             if stateQueue.qsize() > max_queue_size:
@@ -262,10 +261,10 @@ class TSPSolver:
                 num_pruned += stateQueue.qsize()
                 break
         end_time = time.time()
-        results['cost'] = self.bssf.cost  # if foundTour else math.inf
+        results['cost'] = bssf.cost  # if foundTour else math.inf
         results['time'] = end_time - start_time
         results['count'] = num_solutions
-        results['soln'] = self.bssf
+        results['soln'] = bssf
         results['max'] = max_queue_size
         results['total'] = num_states
         results['pruned'] = num_pruned
@@ -275,8 +274,8 @@ class TSPSolver:
         # This is the root of the state tree, or state one
         if parent == None:
             child.city_num = 0  # first state assumes always starting at first city
-            child.state_num = self.state_num
-            self.state_num += 1
+            # child.state_num = self.state_num
+            # self.state_num += 1
             child.depth = 1
             '''Initialize first state cost matrix'''
             for i in range(self.ncities):
@@ -337,9 +336,9 @@ class TSPSolver:
 		'''
 
         def __init__(self, n):
-            self.state_num = -1
+            # self.state_num = -1
             self.parent = None
-            self.children = []
+            # self.children = []
             self.cost = -1
             self.city_num = None
             self.depth = 0
