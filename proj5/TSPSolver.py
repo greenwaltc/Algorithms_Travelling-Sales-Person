@@ -183,13 +183,14 @@ class TSPSolver:
 		root.path.append(root.city_num)
 		self.lowerBound = root.cost
 
-		stateQueue.put((1/root.cost, root))  # By putting the inverse of the cost of the state, the max heap queue is treated like a min-heap
-
+		stateQueue.put((root.cost, root))  # inserting the negative cost makes the max heap operate like a min heap
+		start_time = time.time()
 		'''Begin the algorithm'''
 		while not stateQueue.empty():
+			print("llop")
 			state = stateQueue.get()[1]
 			if state.cost < self.bssf.cost:
-
+				#### state 64 (num 2), iter 11
 				'''Make each child state'''
 				for j in range(self.ncities):
 					if state.cost_matrix[state.city_num][j] != math.inf:
@@ -228,11 +229,30 @@ class TSPSolver:
 						cost_prev_state = child.parent.cost
 						child.cost = cost_prev_state + cost_step + cost_reduction
 
+						'''If the state is a leaf node and 
+						it's less than BSSF so far, update
+						BSSF and continue to next state'''
+						if len(child.path) == self.ncities and child.cost < self.bssf.cost:
+							route = []
+							for i in range(self.ncities):
+								route.append(self.cities[child.path[i]])
+							self.bssf = TSPSolution(route)
+							continue
+
 						'''Add child state to the queue'''
 						if self.bssf.cost > child.cost > self.lowerBound:
-							stateQueue.put((1/child.cost, child))
-
-		pass
+							stateQueue.put((child.cost, child))
+			else:
+				break  # Already found the best solution
+		end_time = time.time()
+		results['cost'] = self.bssf.cost # if foundTour else math.inf
+		results['time'] = end_time - start_time
+		results['count'] = 0
+		results['soln'] = self.bssf
+		results['max'] = None
+		results['total'] = None
+		results['pruned'] = None
+		return results
 
 	def initializeState(self, parent, child):
 		# This is the root of the state tree, or state one
