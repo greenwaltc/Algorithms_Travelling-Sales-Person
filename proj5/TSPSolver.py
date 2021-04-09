@@ -241,7 +241,7 @@ class TSPSolver:
 
                     '''Add child state to the queue'''
                     if bssf.cost > child.cost > lowerBound:
-                        stateQueue.put(((child.cost / child.depth**2), child))
+                        stateQueue.put(((child.cost / child.depth), child))
                         # Encourages digging deeper first
                     else:
                         num_pruned += 1
