@@ -89,13 +89,15 @@ class TSPSolver:
         foundTour = False
         count = 0  # How many tries it took to find a path
         bssf = None
-        original_cities = [cities[city] for city in range(len(cities))]  # Saves the cities for re-runs
+        original_cities = [cities[city] for city in
+                           range(len(cities))]  # Saves the cities for re-runs
         start_time = time.time()
         city_index = 0
 
         while not foundTour and time.time() - start_time < time_allowance:
 
-            cities = [original_cities[city] for city in range(len(original_cities))]
+            cities = [original_cities[city] for city in
+                      range(len(original_cities))]
             route = []
             # current_city = cities.pop(random.randint(0, len(cities) - 1))
             current_city = cities.pop(city_index)
@@ -169,99 +171,83 @@ class TSPSolver:
         results = {}
         self.cities = self._scenario.getCities()
         self.ncities = len(self.cities)
-        # self.state_num = 0
 
         '''Initialize BSSF to the greedy algorithm solution'''
         bssf = self.greedy(time_allowance)['soln']
+        # Since the greedy algorithm is quick and provides a good solution, it
+        # will provide really early pruning for B&B and improve its efficiency
+        # overall. Less states are generated and thus less pruning is needed.
 
         '''Initialize state priority queue'''
         stateQueue = PriorityQueue()
 
         '''	Create the root of the state tree
-			Reduce the cost matrix
-			Set lower bound to cost of first reduction'''
-        root = self.state(self.ncities)
-        root.cost_matrix = [[-1 for i in range(self.ncities)] for k in range(self.ncities)]
+		Reduce the cost matrix
+		Set lower bound to cost of first reduction'''
+        root = self.state()
+        root.cost_matrix = [[-1 for i in range(self.ncities)] \
+                            for k in range(self.ncities)]
         self.initializeState(None, root)
         root.city_num = 0  # Always start at first city
         root.path.append(root.city_num)
         lowerBound = root.cost
 
-        stateQueue.put((root.cost / root.depth, root))  # Dividing by depth encourages digging deeper first
+        stateQueue.put((root.cost, root))
+
         start_time = time.time()
         '''Begin the algorithm'''
-        while not stateQueue.empty() and time.time() - start_time < time_allowance:
+        while not stateQueue.empty() \
+                and time.time() - start_time < time_allowance:
             if stateQueue.qsize() > max_queue_size:
                 max_queue_size = stateQueue.qsize()
             state = stateQueue.get()[1]
-            if state.cost < bssf.cost:
-                '''Make each child state'''
-                for j in range(self.ncities):
-                    if time.time() - start_time > time_allowance:
-                        break  # Over on time
-                    if state.cost_matrix[state.city_num][j] != math.inf:
-                        # There is a path from this city to the next
-                        '''Set up initial values for child'''
-                        child = self.state(self.ncities)
-                        num_states += 1
-                        # state.children.append(child)
-                        child.parent = state
-                        # child.state_num = self.state_num
-                        # self.state_num += 1
-                        child.city_num = j
-                        child.depth = child.parent.depth + 1
-                        child.cost_matrix = copy.deepcopy(
-                            child.parent.cost_matrix)  # Don't want the parent's matrix values to change
-                        child.path = copy.deepcopy(child.parent.path)
-                        child.path.append(j)
+            if state.cost > bssf.cost:
+                num_pruned += 1
+                continue
+            '''Make each child state'''
+            for j in range(self.ncities):
+                if time.time() - start_time > time_allowance:
+                    break  # Over on time
+                if state.cost_matrix[state.city_num][j] != math.inf:
+                    # There is a path from this city to the next
 
-                        '''Inf out appropriate row and column'''
-                        row = child.parent.city_num
-                        col = child.city_num
-                        for k in range(self.ncities):
-                            child.cost_matrix[row][k] = math.inf
-                        for k in range(self.ncities):
-                            child.cost_matrix[k][col] = math.inf
+                    '''Set up initial values for child'''
+                    child = self.state()
+                    self.initializeState(state, child, j)
+                    num_states += 1
 
-                        '''Prevent premature cycles'''
-                        path_len = len(child.path)
-                        index = path_len - 1
-                        while index >= 0:
-                            child.cost_matrix[child.city_num][child.path[index]] = math.inf
-                            index -= 1
+                    self.infRowCol(child)
 
-                        '''Calculate State Cost'''
-                        cost_reduction = self.reduceMatrix(child)
-                        cost_step = child.parent.cost_matrix[child.parent.city_num][child.city_num]
-                        cost_prev_state = child.parent.cost
-                        child.cost = cost_prev_state + cost_step + cost_reduction
+                    '''Calculate State Cost'''
+                    cost_reduction = self.reduceMatrix(child)
+                    cost_step = child.parent.cost_matrix \
+                            [child.parent.city_num][child.city_num]
+                    cost_prev_state = child.parent.cost
+                    child.cost = \
+                        cost_prev_state + cost_step + cost_reduction
 
-                        '''If the state is a leaf node and
-						it's less than BSSF so far, update
-						BSSF and continue to next state'''
-                        if len(child.path) == self.ncities:
-                            if child.cost < bssf.cost:
-                                route = []
-                                for i in range(self.ncities):
-                                    route.append(self.cities[child.path[i]])
-                                bssf = TSPSolution(route)
-                            num_solutions += 1
-                            continue
+                    '''If the state is a leaf node and
+                    it's less than BSSF so far, update
+                    BSSF and continue to next state'''
+                    if len(child.path) == self.ncities:
+                        if child.cost < bssf.cost:
+                            '''Make BSSF route'''
+                            route = []
+                            for i in range(self.ncities):
+                                route.append(self.cities[child.path[i]])
+                            bssf = TSPSolution(route)
+                        num_solutions += 1
+                        continue
 
-                        '''Add child state to the queue'''
-                        if bssf.cost > child.cost > lowerBound:
-                            stateQueue.put((child.cost / child.depth, child))
-                        else:
-                            if stateQueue.qsize() > max_queue_size:
-                                max_queue_size = stateQueue.qsize()
-                            num_pruned += 1
-            else:  # Found the local optimal solution
-                if stateQueue.qsize() > max_queue_size:
-                    max_queue_size = stateQueue.qsize()
-                num_pruned += stateQueue.qsize()
-                break
+                    '''Add child state to the queue'''
+                    if bssf.cost > child.cost > lowerBound:
+                        stateQueue.put(((child.cost / child.depth**2), child))
+                        # Encourages digging deeper first
+                    else:
+                        num_pruned += 1
+
         end_time = time.time()
-        results['cost'] = bssf.cost  # if foundTour else math.inf
+        results['cost'] = bssf.cost
         results['time'] = end_time - start_time
         results['count'] = num_solutions
         results['soln'] = bssf
@@ -270,25 +256,55 @@ class TSPSolver:
         results['pruned'] = num_pruned
         return results
 
-    def initializeState(self, parent, child):
-        # This is the root of the state tree, or state one
+    def initializeState(self, parent, child, j=0):
         if parent == None:
-            child.city_num = 0  # first state assumes always starting at first city
-            # child.state_num = self.state_num
-            # self.state_num += 1
-            child.depth = 1
+            # This is the root of the state tree, or state one
+            root = child
+            root.city_num = 0
+            # first state assumes always starting at first city
+            root.depth = 1
             '''Initialize first state cost matrix'''
             for i in range(self.ncities):
                 for k in range(self.ncities):
-                    child.cost_matrix[i][k] = self.cities[i].costTo(self.cities[k])
+                    root.cost_matrix[i][k] = self.cities[i].costTo(
+                        self.cities[k])
             '''Reduce the cost matrix'''
-            child.cost = self.reduceMatrix(child)
+            root.cost = self.reduceMatrix(root)
+        else:
+            # This is a child state
+            child.parent = parent
+            child.city_num = j
+            child.depth = child.parent.depth + 1
+            # Don't want the parent values to be overwritten so
+            # make a deep copy
+            child.cost_matrix = \
+                copy.deepcopy(child.parent.cost_matrix)
+            child.path = copy.deepcopy(child.parent.path)
+            child.path.append(j)
 
-        pass
+    '''O(3n) ~= o(n)'''
+    def infRowCol(self, state):
+        '''Inf out appropriate row and column'''
+        row = state.parent.city_num
+        col = state.city_num
+        for k in range(self.ncities):
+            state.cost_matrix[row][k] = math.inf
+        for k in range(self.ncities):
+            state.cost_matrix[k][col] = math.inf
+
+        '''Prevent premature cycles'''
+        path_len = len(state.path)
+        index = path_len - 1
+        while index >= 0:
+            row = state.city_num
+            col = state.path[index]
+            state.cost_matrix[row][col] = math.inf
+            index -= 1
 
     def reduceMatrix(self, state):
         total_cost = 0
         '''Reduce row-by-row'''
+        '''O(n^2)'''
         for i in range(self.ncities):
             row_min = math.inf
             '''Find the minimum value in the row'''
@@ -335,10 +351,8 @@ class TSPSolver:
 			n:param the number of nodes in the graph
 		'''
 
-        def __init__(self, n):
-            # self.state_num = -1
+        def __init__(self):
             self.parent = None
-            # self.children = []
             self.cost = -1
             self.city_num = None
             self.depth = 0
