@@ -337,10 +337,6 @@ class TSPSolver:
         return total_cost
 
     class state:
-        '''
-            n:param the number of nodes in the graph
-        '''
-
         def __init__(self):
             self.parent = None
             self.cost = -1
@@ -364,93 +360,173 @@ class TSPSolver:
 		algorithm</returns>
 	'''
 
+    def fancy(self, time_allowance=60.0):
+        BSSF = self.greedy(time_allowance)['soln']
+        results = {}
+        run = 1
+        max_runs = 8
+        start_time = time.time()
+
+        while run <= max_runs and time.time() - start_time < time_allowance:
+            temp_sol = \
+                self.fancy_helper(time_allowance, BSSF, start_time)['soln']
+            if temp_sol.cost < BSSF.cost:
+                BSSF = temp_sol
+            run += 1  # This loop runs max_runs number of times
+
+        end_time = time.time()
+        results['cost'] = BSSF.cost
+        results['time'] = end_time - start_time
+        results['count'] = None
+        results['soln'] = BSSF
+        results['max'] = None
+        results['total'] = None
+        results['pruned'] = None
+        return results
+
     '''
     Christofides Algorithm for solving the TSP. Runs in O(n^4)
     '''
-    def fancy(self, time_allowance=60.0):
-        random.seed(time.time())
+    def fancy_helper(self, time_allowance=60.0, BSSF=None, start_time=time.time()):
+        improvement_found = True
+        # BSSF = self.greedy(time_allowance)['soln']
+        BSSF_route = copy.deepcopy(BSSF.route)
+        ncities = len(BSSF_route)
         results = {}
-        self.cities = self._scenario.getCities()
-        self.ncities = len(self.cities)
 
-        # Create the minimum spanning tree
-        mst = self.MST(0)
-        # mst has a format of {{from_city: {<to_cities>}}}
-        # Or, a set of dictionaries to sets
+        # start_time = time.time()
+        while improvement_found and time.time() - start_time < time_allowance:
+            improvement_found = False  # Start assumption that we have best sol
+            # For each edge 1
+            for i in range(0, ncities):
 
-        # Initialize all the cities into Cities
-        even_odd_cities = [self.City(self.cities[i])
-                           for i in range(self.ncities)]
+                # Gets us closer to the time allotment
+                if time.time() - start_time > time_allowance:
+                    break
 
-        # Find the odd edges
-        for group in mst:
-            # flip group
-            to_set = mst[group]
-            for to in to_set:
-                groupEven = even_odd_cities[group].isEven
-                even_odd_cities[group].isEven = False if groupEven else True
-                toEven = even_odd_cities[to].isEven
-                even_odd_cities[to].isEven = False if toEven else True
-        odd_cities = [even_odd_cities[i] for i in range(self.ncities)
-                      if even_odd_cities[i].isEven is False]
+                edge1 = (BSSF_route[i], BSSF_route[(i+1) % ncities])
 
-        pass
+                # All other possible edges
+                for j in range(0, ncities):
+
+                    # Gets us closer to the time allotment
+                    if time.time() - start_time > time_allowance:
+                        break
+
+                    if j == i:
+                        continue  # An edge can't be replaced with itself
+
+                    edge2 = (BSSF_route[j], BSSF_route[(j+1) % ncities])
+
+                    # Begin swapping edges
+                    # For each possible permutation of edges, try making a path
+                    # and if the new path's cost is less than the previous bssf
+                    # then update the bssf and note that we've found an
+                    # improvement
+                    for p in range(1, 23):
+
+                        # Gets us closer to the time allotment
+                        if time.time() - start_time > time_allowance:
+                            break
+
+                        # There are 24 permutations possible. The first is
+                        # always the original edges, so skip
+
+                        new_edge1, new_edge2 = \
+                            self.permutation_edge(p, edge1, edge2)
+
+                        # Replace the cities in the previous bssf path with
+                        # the new cities
+                        new_route = copy.deepcopy(BSSF_route)
+                        new_route[i] = new_edge1[0]
+                        new_route[(i+1) % ncities] = new_edge1[1]
+                        new_route[j] = new_edge2[0]
+                        new_route[(j+1) % ncities] = new_edge2[1]
+
+                        # Make the solution and compare cost. If the new route
+                        # is invalid the cost will be infinity.
+                        solution = TSPSolution(new_route)
+                        if solution.cost < BSSF.cost:
+                            # Update the BSSF
+                            improvement_found = True
+                            BSSF = solution
+                            print("Improvement found!")
+                    if improvement_found:
+                        break
+                if improvement_found:
+                    break
+            if improvement_found:
+                break
+
+        end_time = time.time()
+        results['cost'] = BSSF.cost
+        results['time'] = end_time - start_time
+        results['count'] = None
+        results['soln'] = BSSF
+        results['max'] = None
+        results['total'] = None
+        results['pruned'] = None
+        return results
 
     '''
-    An implementation of Prim's algorithm to find the minimum spanning tree of
-    the graph of cities.
-    Algorithm steps found here: https://bradfieldcs.com/algos/graphs/prims-spanning-tree-algorithm/
+    Reorders the original edge according to the permutation number
     
-    :returns: forest of cities/edges F
+    Possible permutations:
+    {A,B,C,D} {A,B,D,C} {A,C,B,D} {A,C,D,B} {A,D,B,C} {A,D,C,B} 
+    {B,A,C,D} {B,A,D,C} {B,C,A,D} {B,C,D,A} {B,D,A,C} {B,D,C,A} 
+    {C,A,B,D} {C,A,D,B} {C,B,A,D} {C,B,D,A} {C,D,A,B} {C,D,B,A} 
+    {D,A,B,C} {D,A,C,B} {D,B,A,C} {D,B,C,A} {D,C,A,B} {D,C,B,A}
+    
+    where A,B,C,D are cities and the original edge is in the form:
+        edge1: (A,B); edge2: (C,D)
     '''
-    def MST(self, starting_vertex):
-        mst = defaultdict(set)
-        edgeExists = self._scenario.getEdgeExists()
-        visited = set([starting_vertex])
-        possible_cities = [j for j in range(self.ncities)
-                           if edgeExists[starting_vertex][j]]
-        edges = [
-            self.Edge(self.cities[starting_vertex],
-                      self.cities[possible_cities[to]])
-            for to in range(len(possible_cities))
-        ]
-
-        heapq.heapify(edges)
-
-        while edges:
-            edge = heapq.heappop(edges)
-            frm = edge.origin_city._index
-            to = edge.destination_city._index
-
-            if to not in visited:
-                visited.add(to)
-                mst[frm].add(to)
-                possible_cities = [j for j in range(self.ncities)
-                                   if edgeExists[to][j]]
-                for to_next in possible_cities:
-                    if to_next not in visited:
-                        heapq.heappush(edges, self.Edge(self.cities[to],
-                                                        self.cities[to_next]))
-        return mst
-
-    class Edge:
-        def __init__(self, origin, destination):
-            assert(type(origin) == City and
-                   type(destination) == City)
-            self.origin_city = origin
-            self.destination_city = destination
-            self.cost = origin.costTo(destination)
-
-        def __gt__(self, other):
-            if (self.cost > other.cost):
-                return True
-            else:
-                return False
-
-    class City:
-        def __init__(self, city):
-            self.city = city
-            self.isEven = True
-
-
-
+    def permutation_edge(self, p, edge1, edge2):
+        A = 0; B = 1; C = 0; D = 1
+        if p == 0:
+            return None, None # This if statement should never be reached
+        if p == 1:
+            return (edge1[A], edge1[B]), (edge2[D], edge2[C])
+        if p == 2:
+            return (edge1[A], edge2[C]), (edge1[B], edge2[D])
+        if p == 3:
+            return (edge1[A], edge2[C]), (edge2[D], edge1[B])
+        if p == 4:
+            return (edge1[A], edge2[D]), (edge1[B], edge2[C])
+        if p == 5:
+            return (edge1[A], edge2[D]), (edge2[C], edge1[B])
+        if p == 6:
+            return (edge1[B], edge1[A]), (edge2[C], edge2[D])
+        if p == 7:
+            return (edge1[B], edge1[A]), (edge2[D], edge2[C])
+        if p == 8:
+            return (edge1[B], edge2[C]), (edge1[A], edge2[D])
+        if p == 9:
+            return (edge1[B], edge2[C]), (edge2[D], edge1[A])
+        if p == 10:
+            return (edge1[B], edge2[D]), (edge1[A], edge2[C])
+        if p == 11:
+            return (edge1[B], edge2[D]), (edge2[C], edge1[A])
+        if p == 12:
+            return (edge2[C], edge1[A]), (edge1[B], edge2[D])
+        if p == 13:
+            return (edge2[C], edge1[A]), (edge2[D], edge1[B])
+        if p == 14:
+            return (edge2[C], edge1[B]), (edge1[A], edge2[D])
+        if p == 15:
+            return (edge2[C], edge1[B]), (edge2[D], edge1[A])
+        if p == 16:
+            return (edge2[C], edge2[D]), (edge1[A], edge1[B])
+        if p == 17:
+            return (edge2[C], edge2[D]), (edge1[B], edge1[A])
+        if p == 18:
+            return (edge2[D], edge1[A]), (edge1[B], edge2[C])
+        if p == 19:
+            return (edge2[D], edge1[A]), (edge2[C], edge1[B])
+        if p == 20:
+            return (edge2[D], edge1[B]), (edge1[A], edge2[C])
+        if p == 21:
+            return (edge2[D], edge1[B]), (edge2[C], edge1[A])
+        if p == 22:
+            return (edge2[D], edge2[C]), (edge1[A], edge1[B])
+        if p == 22:
+            return (edge2[D], edge2[C]), (edge1[B], edge1[A])
