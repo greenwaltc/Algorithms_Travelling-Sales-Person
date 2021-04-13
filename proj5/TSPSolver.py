@@ -413,7 +413,7 @@ class TSPSolver:
                     if time.time() - start_time > time_allowance:
                         break
 
-                    if j == i:
+                    if j == i or j == i - 1 or j == i + 1:
                         continue  # An edge can't be replaced with itself
 
                     edge2 = (BSSF_route[j], BSSF_route[(j+1) % ncities])
@@ -528,5 +528,5 @@ class TSPSolver:
             return (edge2[D], edge1[B]), (edge2[C], edge1[A])
         if p == 22:
             return (edge2[D], edge2[C]), (edge1[A], edge1[B])
-        if p == 22:
+        if p == 23:
             return (edge2[D], edge2[C]), (edge1[B], edge1[A])
