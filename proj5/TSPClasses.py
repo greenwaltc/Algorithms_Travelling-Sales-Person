@@ -93,6 +93,9 @@ class Scenario:
 	def getCities( self ):
 		return self._cities
 
+	def getEdgeExists(self):
+		return self._edge_exists
+
 
 	def randperm( self, n ):				#isn't there a numpy function that does this and even gets called in Solver?
 		perm = np.arange(n)

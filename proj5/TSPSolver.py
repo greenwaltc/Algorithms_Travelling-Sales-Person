@@ -2,6 +2,8 @@
 
 from which_pyqt import PYQT_VER
 from queue import PriorityQueue
+from collections import defaultdict
+import heapq
 import numpy as np
 import copy
 import sys
@@ -334,22 +336,10 @@ class TSPSolver:
 
         return total_cost
 
-    ''' <summary>
-		This is the entry point for the algorithm you'll write for your group project.
-		</summary>
-		<returns>results dictionary for GUI that contains three ints: cost of best solution,
-		time spent to find best solution, total number of solutions found during search, the
-		best solution found.  You may use the other three field however you like.
-		algorithm</returns>
-	'''
-
-    def fancy(self, time_allowance=60.0):
-        pass
-
     class state:
         '''
-			n:param the number of nodes in the graph
-		'''
+            n:param the number of nodes in the graph
+        '''
 
         def __init__(self):
             self.parent = None
@@ -364,3 +354,103 @@ class TSPSolver:
                 return True
             else:
                 return False
+
+    ''' <summary>
+		This is the entry point for the algorithm you'll write for your group project.
+		</summary>
+		<returns>results dictionary for GUI that contains three ints: cost of best solution,
+		time spent to find best solution, total number of solutions found during search, the
+		best solution found.  You may use the other three field however you like.
+		algorithm</returns>
+	'''
+
+    '''
+    Christofides Algorithm for solving the TSP. Runs in O(n^4)
+    '''
+    def fancy(self, time_allowance=60.0):
+        random.seed(time.time())
+        results = {}
+        self.cities = self._scenario.getCities()
+        self.ncities = len(self.cities)
+
+        # Create the minimum spanning tree
+        mst = self.MST(0)
+        # mst has a format of {{from_city: {<to_cities>}}}
+        # Or, a set of dictionaries to sets
+
+        # Initialize all the cities into Cities
+        even_odd_cities = [self.City(self.cities[i])
+                           for i in range(self.ncities)]
+
+        # Find the odd edges
+        for group in mst:
+            # flip group
+            to_set = mst[group]
+            for to in to_set:
+                groupEven = even_odd_cities[group].isEven
+                even_odd_cities[group].isEven = False if groupEven else True
+                toEven = even_odd_cities[to].isEven
+                even_odd_cities[to].isEven = False if toEven else True
+        odd_cities = [even_odd_cities[i] for i in range(self.ncities)
+                      if even_odd_cities[i].isEven is False]
+
+        pass
+
+    '''
+    An implementation of Prim's algorithm to find the minimum spanning tree of
+    the graph of cities.
+    Algorithm steps found here: https://bradfieldcs.com/algos/graphs/prims-spanning-tree-algorithm/
+    
+    :returns: forest of cities/edges F
+    '''
+    def MST(self, starting_vertex):
+        mst = defaultdict(set)
+        edgeExists = self._scenario.getEdgeExists()
+        visited = set([starting_vertex])
+        possible_cities = [j for j in range(self.ncities)
+                           if edgeExists[starting_vertex][j]]
+        edges = [
+            self.Edge(self.cities[starting_vertex],
+                      self.cities[possible_cities[to]])
+            for to in range(len(possible_cities))
+        ]
+
+        heapq.heapify(edges)
+
+        while edges:
+            edge = heapq.heappop(edges)
+            frm = edge.origin_city._index
+            to = edge.destination_city._index
+
+            if to not in visited:
+                visited.add(to)
+                mst[frm].add(to)
+                possible_cities = [j for j in range(self.ncities)
+                                   if edgeExists[to][j]]
+                for to_next in possible_cities:
+                    if to_next not in visited:
+                        heapq.heappush(edges, self.Edge(self.cities[to],
+                                                        self.cities[to_next]))
+        return mst
+
+    class Edge:
+        def __init__(self, origin, destination):
+            assert(type(origin) == City and
+                   type(destination) == City)
+            self.origin_city = origin
+            self.destination_city = destination
+            self.cost = origin.costTo(destination)
+
+        def __gt__(self, other):
+            if (self.cost > other.cost):
+                return True
+            else:
+                return False
+
+    class City:
+        def __init__(self, city):
+            self.city = city
+            self.isEven = True
+
+
+
