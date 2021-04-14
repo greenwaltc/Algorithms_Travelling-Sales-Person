@@ -369,7 +369,7 @@ class TSPSolver:
 
         while run <= max_runs and time.time() - start_time < time_allowance:
             temp_sol = \
-                self.fancy_helper(time_allowance, BSSF, start_time)['soln']
+                self.fancy_helper(time_allowance, BSSF, start_time)
             if temp_sol.cost < BSSF.cost:
                 BSSF = temp_sol
             run += 1  # This loop runs max_runs number of times
@@ -389,12 +389,10 @@ class TSPSolver:
     '''
     def fancy_helper(self, time_allowance=60.0, BSSF=None, start_time=time.time()):
         improvement_found = True
-        # BSSF = self.greedy(time_allowance)['soln']
         BSSF_route = copy.deepcopy(BSSF.route)
         ncities = len(BSSF_route)
         results = {}
 
-        # start_time = time.time()
         while improvement_found and time.time() - start_time < time_allowance:
             improvement_found = False  # Start assumption that we have best sol
             # For each edge 1
@@ -409,12 +407,12 @@ class TSPSolver:
                 # All other possible edges
                 for j in range(0, ncities):
 
+                    if j == i or j == i - 1 or j == i + 1:
+                        continue  # An edge can't be replaced with itself
+
                     # Gets us closer to the time allotment
                     if time.time() - start_time > time_allowance:
                         break
-
-                    if j == i or j == i - 1 or j == i + 1:
-                        continue  # An edge can't be replaced with itself
 
                     edge2 = (BSSF_route[j], BSSF_route[(j+1) % ncities])
 
@@ -425,12 +423,12 @@ class TSPSolver:
                     # improvement
                     for p in range(1, 23):
 
+                        # There are 24 permutations possible. The first is
+                        # always the original edges, so skip 0
+
                         # Gets us closer to the time allotment
                         if time.time() - start_time > time_allowance:
                             break
-
-                        # There are 24 permutations possible. The first is
-                        # always the original edges, so skip
 
                         new_edge1, new_edge2 = \
                             self.permutation_edge(p, edge1, edge2)
@@ -457,16 +455,7 @@ class TSPSolver:
                     break
             if improvement_found:
                 break
-
-        end_time = time.time()
-        results['cost'] = BSSF.cost
-        results['time'] = end_time - start_time
-        results['count'] = None
-        results['soln'] = BSSF
-        results['max'] = None
-        results['total'] = None
-        results['pruned'] = None
-        return results
+        return BSSF
 
     '''
     Reorders the original edge according to the permutation number
